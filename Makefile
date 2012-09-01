@@ -1,5 +1,5 @@
 MCU=atmega168
-TARGET = humidiboat
+TARGET = flatdrier
 SRCS = main.c dht11.c
 
 all: $(TARGET).hex
