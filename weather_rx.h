@@ -23,14 +23,12 @@
 void init_weather_rx();
 
 struct weather_data {
-  uint8_t humidity_integral;
-  uint8_t humidity_decimal;
-  uint8_t temp_integral;
-  uint8_t temp_decimal;
+  uint8_t humidity;
+  uint8_t temp;
   uint8_t channel;
   bool button;
   bool celsius;
-}; // happens to be the same as dht11_data, just with a channel number
+};
 typedef struct weather_data weather_data;
 
 /*
