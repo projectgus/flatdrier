@@ -1,7 +1,6 @@
 #ifndef _WEATHER_RX_H
 #define _WEATHER_RX_H
-/*
- * Asynchronous receiver code for 433Mhz pulses from no-brand weather modules
+/* Asynchronous receiver code for 433Mhz pulses from no-brand weather modules
  *
  * My transmitter PCBs have "ver2" in top-right, use 433Mhz module
  * "SL-TX583 WWW.HH.COM"
@@ -10,6 +9,7 @@
  *
  * Uses Timer 0
  *
+ * Copyright (c) 2012, Angus Gratton. Licensed under the Modified BSD License.
  */
 #include <stdint.h>
 #include <stdbool.h>

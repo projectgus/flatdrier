@@ -1,4 +1,8 @@
-/* Synchronous DHT-11 reader
+/*
+ * Synchronous DHT-11 temp & humidity sensor module reader
+ *
+ *
+ * Copyright (c) 2012, Angus Gratton. Licensed under the Modified BSD License.
  */
 #include "config.h"
 #include "macro_helpers.h"

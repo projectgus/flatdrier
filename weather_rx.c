@@ -1,5 +1,4 @@
-/*
- * Asynchronous receiver code for 433Mhz pulses from no-brand weather modules.
+/* Asynchronous receiver code for 433Mhz pulses from no-brand weather modules.
  *
  * Receiver sends high-side pulses with data (mirrors transmitter module which sees data on low side of pulse)
  *
@@ -11,6 +10,7 @@
  * Gaps between each message.
  *
  *
+ * Copyright (c) 2012, Angus Gratton. Licensed under the Modified BSD License.
  */
 #include "weather_rx.h"
 #include "config.h"

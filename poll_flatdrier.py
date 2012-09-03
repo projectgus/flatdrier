@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """
+Copyright (c) 2012, Angus Gratton. Licensed under the Modified BSD License.
+
 A python script to poll the Arduino running flatdrier and append the data to a CSV
 file. Designed to be run from cron at one minute intervals.
 

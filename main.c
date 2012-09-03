@@ -1,5 +1,10 @@
-/*
+/* flatdrier main
  *
+ * flatdrier communicates with a DHT-11 temp/humidity sensor, up to 3 remote weather temp/humidity sensors and a remote control power point and * allows reading of the data, and control of the power point, via a serial link.
+ *
+ * main.c covers serial comms, setup, etc.
+ *
+ * Copyright (c) 2012, Angus Gratton. Licensed under the Modified BSD License.
  */
 #include <avr/io.h>
 #include <avr/sfr_defs.h>

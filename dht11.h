@@ -1,7 +1,9 @@
 #ifndef _DHT11_H
 #define _DHT11_H
-/* Synchronous DHT-11 reader
+/* Synchronous DHT-11 temp & humidity sensor reader code
  *
+ *
+ * Copyright (c) 2012, Angus Gratton. Licensed under the Modified BSD License.
  */
 
 struct dht11_data {

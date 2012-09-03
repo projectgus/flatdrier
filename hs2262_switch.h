@@ -17,6 +17,9 @@
  * choice if you're using the Arduino environment:
  * http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1216065789
  * Big thanks to Randy Simons for that library.
+ *
+ *
+ * Copyright (c) 2012, Angus Gratton. Licensed under the Modified BSD License.
  */
 #include <stdbool.h>
 #include <stdint.h>

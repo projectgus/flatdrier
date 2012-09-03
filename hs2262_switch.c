@@ -2,6 +2,8 @@
  * Simple routines for transmitting on/off signals to remote control powerpoint switches
  * via 433Mhz transmitter module.
  *
+ *
+ * Copyright (c) 2012, Angus Gratton. Licensed under the Modified BSD License.
  */
 
 #include "hs2262_switch.h"
