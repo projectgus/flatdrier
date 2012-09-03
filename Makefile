@@ -1,6 +1,6 @@
 MCU=atmega168
 TARGET = flatdrier
-SRCS = main.c dht11.c weather_rx.c
+SRCS = main.c dht11.c weather_rx.c hs2262_switch.c
 
 all: $(TARGET).hex
 

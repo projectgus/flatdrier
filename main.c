@@ -11,6 +11,7 @@
 #include "config.h"
 #include "dht11.h"
 #include "weather_rx.h"
+#include "hs2262_switch.h"
 
 static void init_uart(void) {
 #include <util/setbaud.h> // BAUD is defined in config.h
@@ -74,6 +75,7 @@ int main() {
   init_uart();
   init_dht11();
   init_weather_rx();
+  init_hs2262_switch();
   sei();
 
   while(1) {
@@ -81,6 +83,15 @@ int main() {
     case 'r': // read latest sample
     case 'R':
       uart_send_sample();
+      break;
+    case 'o': // power point on
+    case 'O':
+      send_hs2262_switch(HS2262_CHANNEL, true);
+      break;
+    case 'f': // power point off
+    case 'F':
+      send_hs2262_switch(HS2262_CHANNEL, false);
+      break;
     default: // ignored
       break;
     }
