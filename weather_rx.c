@@ -29,9 +29,8 @@
 #error  You should define an PCINT0-7 register named RX_INT in config.h, corresponding to RX_PIN. It should be in bank 0
 #endif
 
-
 // constants
-#define MSG_LEN 5
+#define MSG_LEN 36 // 36 bit raw messages, but first 4 bytes are always 5 (1010) so we discard
 #define MSG_REPEAT 3
 #define MINIMUM_PULSE 1
 #define ZERO_THRES 2
@@ -42,12 +41,9 @@
 static volatile weather_data last_data[NUM_CHANNELS];
 static volatile bool last_data_is_fresh[NUM_CHANNELS];
 static volatile enum { prelude, reading, repeating } state;
-static volatile uint8_t msg_buf[MSG_LEN*MSG_REPEAT];
-static volatile uint8_t bytes_received;
+static volatile uint32_t raw_msg;
 static volatile uint8_t bits_received;
 static volatile uint8_t confirmed_repeats;
-
-void uart_putchar(char c);
 
 // timer convenience functions
 
@@ -69,7 +65,6 @@ inline static uint16_t get_timer_ms() { // ms elapsed since timer turned on
 
 
 void init_weather_rx() {
-  uart_putchar('i');
   // enable pin change interrupt bank 0
   PCMSK0 |= _BV(RX_INT);
   PCICR |= _BV(PCIE0);
@@ -94,7 +89,8 @@ bool get_latest_weather(uint8_t channel, weather_data *data) {
 // interrupt handlers & main implementation
 
 ISR(TIMER0_OVF_vect) { // timer overflow means something has gone wrong, abort!
-  bytes_received = 0;
+  bits_received = 0;
+  raw_msg = 0L;
   state = prelude;
   timer_off();
 }
@@ -136,29 +132,22 @@ static void received_data_pulse(bool one) {
   case prelude:
     break; // there is a pattern in the prelude state, but it's not consistent
   case reading:
-    if(one && bytes_received < MSG_LEN)
-      msg_buf[bytes_received] |= _BV(7-bits_received);
+    if(bits_received < MSG_LEN) {
+      raw_msg = (raw_msg << 1) | (one?1:0);
+      bits_received++;
+    }
     break;
   case repeating:
-    if(bytes_received == MSG_LEN)
+    if(bits_received == MSG_LEN)
       break;
-    bool last_bit = msg_buf[bytes_received] & _BV(7-bits_received);
+    if(bits_received++ < 4) // first 4 bytes are always 1010 and are discarded so packet fits in a 32-bit int
+      break;
+    bool last_bit = ( raw_msg & ( 1L << (MSG_LEN-bits_received) ) ) ? true : false;
     if(last_bit != one) { // repeat read doesn't match, reset!
-      uart_putchar('E');
-      uart_putchar('0'+confirmed_repeats);
       state = reading;
-      bytes_received = 0;
       bits_received = 0;
+      raw_msg = 0L;
       return;
-    }
-  }
-
-  // increment bit counter
-  if(bytes_received < MSG_LEN && (state == reading || state == repeating)) {
-    bits_received++;
-    if(bits_received == 8) {
-      bytes_received++;
-      bits_received = 0;
     }
   }
 }
@@ -166,20 +155,19 @@ static void received_data_pulse(bool one) {
 static void received_message_end() {
   switch(state) {
   case prelude:
-    memset(&msg_buf,0,sizeof(msg_buf));
+    raw_msg = 0L;
     state = reading;
     break;
   case reading:
-    if(bytes_received >= MSG_LEN-1) { // got a full message, wait for repeats to confirm
-      // TODO: why is this MSG_LEN-1 not MSG_LEN?
+    if(bits_received == MSG_LEN) { // got a full message, wait for repeats to confirm
       state = repeating;
       confirmed_repeats = 0;
     }
     break;
   case repeating:
-    if(bytes_received >= MSG_LEN-1) { // got a full data packet same TODO
+    if(bits_received == MSG_LEN) { // passed a full data packet that matched the original
       confirmed_repeats++;
-      if(confirmed_repeats == MSG_REPEAT) { // got all matching repeats
+      if(confirmed_repeats == MSG_REPEAT) { // got enough matching repeats
         full_data_received();
         state = prelude;
       }
@@ -188,23 +176,51 @@ static void received_message_end() {
     }
     break;
   }
-  bytes_received = 0;
   bits_received = 0;
 }
 
+// constants for slicing up the 32-bit weather data packet
+
+// bottom 8 bits are humidity
+#define HUMIDITY_SHIFT 0
+// second 8 bits are temp, as deci-degrees celsisu
+#define TEMP_SHIFT 8
+// bit is set if button is pressed forcing data to transmit, rather than timed transmit
+#define BUTTON_MASK  0x00400000L
+// channel 0-2 marked 1-3 on transmitter units
+#define CHANNEL_MASK 0x00300000L
+#define CHANNEL_SHIFT 20
+// this bit is always set on all my transmitters
+// (could indicate celsius, data is always sent in C regardless. Doesn't seem to be battery good status. unused feature?)
+#define MYSTERY_BIT  0x00800000L
+// OTOH this bytes seems to change to a random value any time a transmitter resets, doesn't change after that...
+// Doesn't seem to be battery related.
+#define MYSTERY_MASK 0xFF000000L
+
 static void full_data_received()
 {
-  // copying this data out is pretty hacky, but it's easier than writing
-  // a struct to represent such oddly laid out data
-  uint8_t channel = msg_buf[1]&3;
+  /* // uncomment this if you'd like to see some debug output
+  char buf[60];
+  snprintf(buf, 60, "%08lx ch=%d b=%d h=%u t=%u rest=%08lx\r\n",
+           raw_msg,
+           (bool)((raw_msg&CHANNEL_MASK)>>CHANNEL_SHIFT),
+           (bool)(raw_msg&BUTTON_MASK),
+           (uint8_t)(raw_msg>>HUMIDITY_SHIFT),
+           (uint8_t)(raw_msg>>TEMP_SHIFT),
+           raw_msg&0xFFFF0000L&~(BUTTON_MASK|CHANNEL_MASK)
+           );
+  uart_putstr(buf);
+  */
+  uint8_t channel = (raw_msg&CHANNEL_MASK)>>CHANNEL_SHIFT;
   if(channel == 3)
     return;
   volatile weather_data *d = &last_data[channel];
-  d->celsius = msg_buf[1]&(1<<3);
-  d->button = msg_buf[1]&(1<<2);
+  d->button = raw_msg&BUTTON_MASK;
   d->channel = channel;
-  d->temp = (msg_buf[2]<<4)|((msg_buf[3]&0xF0)>>4);
-  d->humidity = ((msg_buf[3]&0x0F)<<4)|((msg_buf[4]&0xF0)>>4);
+  uint8_t temp = raw_msg>>TEMP_SHIFT;
+  d->temp_integral = temp/10;
+  d->temp_decimal = temp%10;
+  d->humidity = raw_msg>>HUMIDITY_SHIFT;
   last_data_is_fresh[channel] = true;
   timer_off();
 }
