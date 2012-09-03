@@ -1,4 +1,5 @@
-MCU=atmega168
+MCU=atmega328
+AVRDUDE_MCU=atmega168
 TARGET = flatdrier
 SRCS = main.c dht11.c weather_rx.c hs2262_switch.c
 
@@ -19,7 +20,7 @@ $(TARGET).hex: $(TARGET).elf
 	avr-objcopy -R .eeprom -O ihex $<  $@
 
 upload: $(TARGET).hex
-	avrdude -c arduino -P /dev/ttyUSB0 -p $(MCU) -b 19200 -U flash:w:$<
+	avrdude -c arduino -P /dev/ttyUSB0 -p $(AVRDUDE_MCU) -b 19200 -U flash:w:$<
 
 clean:
 	rm $(TARGET).elf $(TARGET).hex *.o
