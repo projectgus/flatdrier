@@ -1,0 +1,45 @@
+Cmp-Mod V01 Created by CvPcb (2012-apr-16-27)-stable date = Wed 22 Aug 2012 22:06:12 EST
+
+BeginCmp
+TimeStamp = /5034C389;
+Reference = ANT1;
+ValeurCmp = CONN_1;
+IdModule  = SIL-1;
+EndCmp
+
+BeginCmp
+TimeStamp = /5034C54F;
+Reference = DHT1;
+ValeurCmp = CONN_4;
+IdModule  = SIL-4;
+EndCmp
+
+BeginCmp
+TimeStamp = /5034C5B0;
+Reference = R1;
+ValeurCmp = 10K;
+IdModule  = R4;
+EndCmp
+
+BeginCmp
+TimeStamp = /5034C6BD;
+Reference = RX1;
+ValeurCmp = CONN_3;
+IdModule  = SIL-3;
+EndCmp
+
+BeginCmp
+TimeStamp = /5034C2C0;
+Reference = SHIELD;
+ValeurCmp = SHIELD1;
+IdModule  = ARDUINO_SHIELD;
+EndCmp
+
+BeginCmp
+TimeStamp = /5034C2E9;
+Reference = TX1;
+ValeurCmp = CONN_4;
+IdModule  = SIL-4;
+EndCmp
+
+EndListe

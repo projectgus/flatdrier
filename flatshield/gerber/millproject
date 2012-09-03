@@ -1,0 +1,39 @@
+# this is an example config file for pcb2gcode.
+# place this in the same directory as your gerber files to save typing
+
+metric=1
+
+# You may want to uncomment and change those in local project files
+front=flatshield-Front.gtl
+#back=board.back.gbr
+outline=flatshield-PCB_Edges.gbr
+drill=flatshield.drl
+
+
+# The board outline, no holes
+fill-outline = yes
+outline-width = 1
+
+# parameters for isolation routing / engraving / etching
+#offset=1			# uncomment for voronoi regions
+offset=0.4 # .6mm isolation
+zwork=-1
+zsafe=1
+mill-feed=90 # mm / min
+mill-speed=30000
+
+
+# parameters for cutting out boards
+cutter-diameter=1
+zcut=-1
+cut-feed=70
+cut-speed=20000
+cut-infeed=2
+
+
+# drilling parameters
+drill-front=1
+zdrill=-0.08
+zchange=0.8
+drill-feed=3
+drill-speed=20000

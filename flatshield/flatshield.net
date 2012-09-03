@@ -1,0 +1,68 @@
+# EESchema Netlist Version 1.1 created  Wed 22 Aug 2012 22:06:12 EST
+(
+ ( /5034C389 SIL-1 ANT1 CONN_1
+  ( 1 N-000016 )
+ )
+ ( /5034C54F SIL-4 DHT1 CONN_4
+  ( 1 +3.3V )
+  ( 2 N-000014 )
+  ( 3 ? )
+  ( 4 GND )
+ )
+ ( /5034C5B0 R4 R1 10K
+  ( 1 N-000014 )
+  ( 2 +3.3V )
+ )
+ ( /5034C6BD SIL-3 RX1 CONN_3
+  ( 1 +3.3V )
+  ( 2 N-000001 )
+  ( 3 GND )
+ )
+ ( /5034C2C0 ARDUINO_SHIELD SHIELD SHIELD1
+  ( 0 ? )
+  ( 1 ? )
+  ( 2 ? )
+  ( 3 ? )
+  ( 3V3 +3.3V )
+  ( 4 ? )
+  ( 5 ? )
+  ( 5V ? )
+  ( 6 ? )
+  ( 7 ? )
+  ( 8 ? )
+  ( 9 ? )
+  ( 10 N-000001 )
+  ( 11 N-000014 )
+  ( 12 N-000015 )
+  ( 13 ? )
+  ( AD0 ? )
+  ( AD1 ? )
+  ( AD2 ? )
+  ( AD3 ? )
+  ( AD4 ? )
+  ( AD5 ? )
+  ( AREF ? )
+  ( GND1 GND )
+  ( GND2 GND )
+  ( GND3 GND )
+  ( RST ? )
+  ( V_IN ? )
+ )
+ ( /5034C2E9 SIL-4 TX1 CONN_4
+  ( 1 GND )
+  ( 2 N-000015 )
+  ( 3 +3.3V )
+  ( 4 N-000016 )
+ )
+)
+*
+{ Allowed footprints by component:
+$component R1
+ R?
+ SM0603
+ SM0805
+ R?-*
+ SM1206
+$endlist
+$endfootprintlist
+}

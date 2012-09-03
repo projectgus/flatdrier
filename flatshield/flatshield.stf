@@ -1,0 +1,6 @@
+comp = "ANT1" module = "SIL-1"
+comp = "DHT1" module = "SIL-4"
+comp = "R1" module = "R3"
+comp = "RX1" module = "SIL-3"
+comp = "SHIELD1" module = "ARDUINO SHIELD"
+comp = "TX1" module = "SIL-4"
