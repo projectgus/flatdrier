@@ -42,34 +42,10 @@ void uart_putstr(char *c) {
     uart_putchar(*c);
 }
 
-// Send the latest sample to the client
-void uart_send_sample() {
-  const int maxlen = 40;
-  char buf[maxlen];
+static dht11_data last_dht11;
+static enum { off, on, unknown } dehumidifier_state = unknown;
 
-  // local data
-  dht11_data data;
-  dht11_status status = read_dht11(&data);
-
-  if(status != success) {
-    snprintf(buf, maxlen, "FAIL %d\r\n", status);
-  }
-  else {
-    snprintf(buf, maxlen, "%d.%d,%d.%d\r\n",
-             data.humidity_integral, data.humidity_decimal,
-             data.temp_integral, data.temp_decimal);
-  }
-  uart_putstr(buf);
-
-  for(int i = 0; i <3; i++) {
-    weather_data data;
-    bool stat = get_latest_weather(i, &data);
-    snprintf(buf, maxlen, "%d/%d - %d,%d,%d,%d\r\n",
-             i, stat, data.temp, data.humidity,
-             data.button, data.celsius);
-    uart_putstr(buf);
-  }
-}
+void uart_send_sample();
 
 int main() {
   init_uart();
@@ -87,10 +63,12 @@ int main() {
     case 'o': // power point on
     case 'O':
       send_hs2262_switch(HS2262_CHANNEL, true);
+      dehumidifier_state = on;
       break;
     case 'f': // power point off
     case 'F':
       send_hs2262_switch(HS2262_CHANNEL, false);
+      dehumidifier_state = off;
       break;
     default: // ignored
       break;
@@ -99,4 +77,38 @@ int main() {
 
   return 0;
 }
+
+const char *state_symbols[] = {"0","1","?"};
+
+// Send the latest sample to the client
+void uart_send_sample() {
+  const int maxlen = 40;
+  char buf[maxlen];
+  uint8_t successes = 0;
+
+  // DHT-11 local temp
+  dht11_status status = read_dht11(&last_dht11);
+  if(status == success)
+    successes++;
+  snprintf(buf, maxlen, "%02d.%01d,%02d.%01d,",
+           last_dht11.humidity_integral, last_dht11.humidity_decimal,
+           last_dht11.temp_integral, last_dht11.temp_decimal);
+  uart_putstr(buf);
+
+  // remote receiver temps
+  for(int i = 0; i <3; i++) {
+    weather_data data;
+    bool stat = get_latest_weather(i, &data);
+    if(stat)
+      successes++;
+    snprintf(buf, maxlen, "%02d,%02d.%01d,",
+             data.humidity, data.temp_integral, data.temp_decimal);
+    uart_putstr(buf);
+  }
+
+  // last 2 fields: successes is the number of new values (0-4) read since last time, then dehumidifier state (0, 1 or '?')
+  snprintf(buf, maxlen, "%d,%s\r\n", successes, state_symbols[dehumidifier_state]);
+  uart_putstr(buf);
+}
+
 
