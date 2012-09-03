@@ -13,6 +13,7 @@
  *
  */
 #include "weather_rx.h"
+#include "config.h"
 
 #include <string.h>
 #include <avr/io.h>

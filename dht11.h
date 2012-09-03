@@ -3,8 +3,6 @@
 /* Synchronous DHT-11 reader
  *
  */
-#include "config.h"
-#include "macro_helpers.h"
 
 struct dht11_data {
   uint8_t humidity_integral;

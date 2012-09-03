@@ -1,3 +1,5 @@
+#ifndef _MACRO_HELPERS_H
+#define _MACRO_HELPERS_H
 /* Thanks to startlino for these quick avr macros
    http://www.starlino.com/port_macro.html
 */
@@ -17,3 +19,5 @@
 #define LOW(pin)            _CLEAR(PORT,pin)
 #define TOGGLE(pin)            _TOGGLE(PORT,pin)
 #define READ(pin)            _GET(PIN,pin)
+
+#endif

@@ -1,6 +1,7 @@
 /* Synchronous DHT-11 reader
  */
 #include "config.h"
+#include "macro_helpers.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>

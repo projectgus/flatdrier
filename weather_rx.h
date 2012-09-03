@@ -14,9 +14,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "config.h"
-
-
 /* Sets up timer 0 & pin edge interrupt for receiving weather data
  *
  */
