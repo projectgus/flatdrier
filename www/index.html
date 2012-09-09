@@ -2,6 +2,8 @@
 <meta charset="utf-8">
 
 <link href="css/nv.d3.css" rel="stylesheet" type="text/css">
+<link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="css/daterangepicker.css" />
 
 <style>
 
@@ -32,15 +34,36 @@ svg {
 </style>
 <body>
 
-  <div id="chart1">
-    <svg style="height: 500px;"></svg>
+  <div class="container">
+    <div class="row">
+      <p><form class="form-horizontal">
+          <label class="control-label" for="reservation">Date Range:</label>
+          <div class="controls">
+            <div class="input-prepend">
+              <span class="add-on"><i class="icon-calendar"></i></span>
+              <input type="text" name="daterange" id="daterange" />
+            </div>
+          </div>
+        </form>
+      </p>
+    </div>
+    <div class="row" id="chart1">
+      <p><svg style="height: 500px;"></svg></p>
+    </div>
   </div>
 
 <script src="lib/d3.v2.js"></script>
 <script src="lib/nv.d3.js"></script>
 <script src="lib/jquery-1.8.1.min.js"></script>
 <script src="lib/coffee-script.js"></script>
+<script src="bootstrap/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/date.js"></script>
+<script type="text/javascript" src="lib/daterangepicker.js"></script>
 <script type="text/coffeescript">
+# some "constants"
+SENSORS = [ "Lounge Room", "Kitchen", "Outside", "Study Sill" ] # sensor locations
+DAY=60*60*24*1000 # one day in ms
+
 class Sensor
         constructor: (@index, temp, humidity) ->
                 @temp = parseFloat temp
@@ -57,24 +80,34 @@ class Sample
                 invalids = (s for s in @sensors when not (s? and s.isvalid()))
                 invalids.length == 0
 
-get_fn = (url,i) ->
-        $.get url, (data) ->
-                window.days[i] = data.split "\n"
-                if window.days[0] and window.days[1]
-                        lines = [].concat window.days...
+fetch_chart_data = (from,to) ->
+        days = (new Date(d) for d in [from.getTime()..to.getTime()+DAY-1] by DAY)
+        # no good date formatter loaded(!)
+        pad_length = (x,len) ->
+                if x.toString().length < len then pad_length("0"+x,len) else x
+        format_filename = (d) -> d.getFullYear() + pad_length(d.getMonth()+1,2) + pad_length(d.getDate(),2) + ".csv"
+        filenames = (format_filename(d) for d in days)
+        fetched_data = (undefined for d in days) # placeholder to fill the data for each day
+
+        get_callback = (day_index) -> (data) ->
+                fetched_data[day_index] = data.split "\n"
+                if (s for s in fetched_data when s?).length == fetched_data.length # all days fetched
+                        lines = [].concat fetched_data...
                         samples = (build_sample line.split(",")... for line in lines)
                         load_graph generate_datasets((s for s in samples when s? and s.isvalid()))
+        ($.get url, get_callback(index) for url,index in filenames)
 
-window.days = [ null, null ]
-urls = ['20120904.csv', '20120903.csv']
-get_fn url,i for url,i in urls
+
+from = new Date(2012,8,3)
+to = new Date(2012,8,4)
+fetch_chart_data from, to
 
 build_sample = (ts,h0,t0,h1,t1,h2,t2,h3,t3,num_updates,out_status) ->
         sensors = [ new Sensor(0,t0,h0), new Sensor(1,t1,h1), new Sensor(2,t2,h2), new Sensor(3,t3,h3) ]
         new Sample(parseInt(ts), sensors)
 
 generate_datasets = (samples) ->
-        ({key: "Sensor "+i, values: generate_sensordata(samples,i)} for i in [0,1,2,3])
+        ({key: SENSORS[i], values: generate_sensordata(samples,i)} for i in [0,1,2,3])
 
 generate_sensordata = (samples, sensor_index) ->
         ({x:sample.timestamp, y:sample.sensors[sensor_index].temp} for sample in samples)
@@ -93,5 +126,17 @@ load_graph = (axes) ->
 
         # TODO: Figure out a good way to do this automatically
         nv.utils.windowResize chart.update
+
+$(document).ready () ->
+        ranges =
+            'Today': ['today', 'today'],
+            'Yesterday': ['yesterday', 'yesterday'],
+            'Last 7 Days': [Date.today().add({ days: -6 }), 'today'],
+            'Last 30 Days': [Date.today().add({ days: -29 }), 'today'],
+        params =
+            ranges: ranges
+        callback = (start,end) ->
+            fetch_chart_data start, end
+        $('input[name="daterange"]').daterangepicker params, callback
 
 </script>
