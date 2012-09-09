@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<link href="css/nv.d3.css" rel="stylesheet" type="text/css">
+
+<style>
+
+body {
+  overflow-y:scroll;
+}
+
+text {
+  font: 12px sans-serif;
+}
+
+svg {
+  display: block;
+}
+
+#chart1 svg {
+  height: 500px;
+  min-width: 100px;
+  min-height: 100px;
+/*
+  margin: 50px;
+  Minimum height and width is a good idea to prevent negative SVG dimensions...
+  For example width should be =< margin.left + margin.right + 1,
+  of course 1 pixel for the entire chart would not be very useful, BUT should not have errors
+*/
+}
+
+</style>
+<body>
+
+  <div id="chart1">
+    <svg style="height: 500px;"></svg>
+  </div>
+
+<script src="lib/d3.v2.js"></script>
+<script src="lib/nv.d3.js"></script>
+<script src="lib/jquery-1.8.1.min.js"></script>
+<script src="lib/coffee-script.js"></script>
+<script type="text/coffeescript">
+class Sensor
+        constructor: (@index, temp, humidity) ->
+                @temp = parseFloat temp
+                @humidity = parseFloat humidity
+
+        isvalid: ->
+                not (isNaN(@temp) or isNaN(@humidity))
+
+class Sample
+        constructor: (timestamp, @sensors) ->
+                @timestamp = new Date(timestamp*1000)
+
+        isvalid: ->
+                invalids = (s for s in @sensors when not (s? and s.isvalid()))
+                invalids.length == 0
+
+get_fn = (url,i) ->
+        $.get url, (data) ->
+                window.days[i] = data.split "\n"
+                if window.days[0] and window.days[1]
+                        lines = [].concat window.days...
+                        samples = (build_sample line.split(",")... for line in lines)
+                        load_graph generate_datasets((s for s in samples when s? and s.isvalid()))
+
+window.days = [ null, null ]
+urls = ['20120904.csv', '20120903.csv']
+get_fn url,i for url,i in urls
+
+build_sample = (ts,h0,t0,h1,t1,h2,t2,h3,t3,num_updates,out_status) ->
+        sensors = [ new Sensor(0,t0,h0), new Sensor(1,t1,h1), new Sensor(2,t2,h2), new Sensor(3,t3,h3) ]
+        new Sample(parseInt(ts), sensors)
+
+generate_datasets = (samples) ->
+        ({key: "Sensor "+i, values: generate_sensordata(samples,i)} for i in [0,1,2,3])
+
+generate_sensordata = (samples, sensor_index) ->
+        ({x:sample.timestamp, y:sample.sensors[sensor_index].temp} for sample in samples)
+
+load_graph = (axes) ->
+        chart = nv.models.lineChart()
+        xFn = (d) -> d3.time.format('%I %M %p')(new Date(d))
+        chart.xAxis.tickFormat xFn
+        chart.yAxis.axisLabel('Temperature (T)')
+            .tickFormat(d3.format ',.1f')
+
+        d3.select('#chart1 svg')
+            .datum(axes)
+            .transition().duration(500)
+            .call(chart);
+
+        # TODO: Figure out a good way to do this automatically
+        nv.utils.windowResize chart.update
+
+</script>
