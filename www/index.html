@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 
-<link href="css/nv.d3.css" rel="stylesheet" type="text/css">
 <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" type="text/css" href="css/daterangepicker.css" />
 
@@ -13,22 +12,6 @@ body {
 
 text {
   font: 12px sans-serif;
-}
-
-svg {
-  display: block;
-}
-
-#chart1 svg {
-  height: 500px;
-  min-width: 100px;
-  min-height: 100px;
-/*
-  margin: 50px;
-  Minimum height and width is a good idea to prevent negative SVG dimensions...
-  For example width should be =< margin.left + margin.right + 1,
-  of course 1 pixel for the entire chart would not be very useful, BUT should not have errors
-*/
 }
 
 </style>
@@ -47,14 +30,16 @@ svg {
         </form>
       </p>
     </div>
+
+    <div id="graph" style="width:800px;height:500px;"></div>
+
     <div class="row" id="chart1">
       <p><svg style="height: 500px;"></svg></p>
     </div>
   </div>
 
-<script src="lib/d3.v2.js"></script>
-<script src="lib/nv.d3.js"></script>
 <script src="lib/jquery-1.8.1.min.js"></script>
+<script src="lib/jquery.flot.js"></script>
 <script src="lib/coffee-script.js"></script>
 <script src="bootstrap/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="lib/date.js"></script>
@@ -62,6 +47,8 @@ svg {
 <script type="text/coffeescript">
 # some "constants"
 SENSORS = [ "Lounge Room", "Kitchen", "Outside", "Study Sill" ] # sensor locations
+TEMP_COLOURS =     [ "#A2285E", "#8C003D", "#D8005F", "#EB3B88" ]
+HUMIDITY_COLOURS = [ "#472B83", "#290671", "#7546D7", "#4512AE" ]
 DAY=60*60*24*1000 # one day in ms
 
 class Sensor
@@ -81,11 +68,13 @@ class Sample
                 invalids.length == 0
 
 fetch_chart_data = (from,to) ->
+        from = new Date(from.getFullYear(), from.getMonth(), from.getDate()) # normalise from 00:00:00
+        to = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59) # normalise to 23:59:59
         days = (new Date(d) for d in [from.getTime()..to.getTime()+DAY-1] by DAY)
         # no good date formatter loaded(!)
         pad_length = (x,len) ->
                 if x.toString().length < len then pad_length("0"+x,len) else x
-        format_filename = (d) -> d.getFullYear() + pad_length(d.getMonth()+1,2) + pad_length(d.getDate(),2) + ".csv"
+        format_filename = (d) -> "data/" + d.getUTCFullYear() + pad_length(d.getUTCMonth()+1,2) + pad_length(d.getUTCDate(),2) + ".csv"
         filenames = (format_filename(d) for d in days)
         fetched_data = (undefined for d in days) # placeholder to fill the data for each day
 
@@ -94,38 +83,44 @@ fetch_chart_data = (from,to) ->
                 if (s for s in fetched_data when s?).length == fetched_data.length # all days fetched
                         lines = [].concat fetched_data...
                         samples = (build_sample line.split(",")... for line in lines)
-                        load_graph generate_datasets((s for s in samples when s? and s.isvalid()))
+                        samples = (s for s in samples when s.timestamp > from and s.timestamp < to)
+                        load_graph generate_datasets((s for s in samples when s? and s.isvalid())), from, to
         ($.get url, get_callback(index) for url,index in filenames)
 
 
-from = new Date(2012,8,3)
-to = new Date(2012,8,4)
-fetch_chart_data from, to
+day = new Date(2012,8,4)
+fetch_chart_data day, day
 
 build_sample = (ts,h0,t0,h1,t1,h2,t2,h3,t3,num_updates,out_status) ->
         sensors = [ new Sensor(0,t0,h0), new Sensor(1,t1,h1), new Sensor(2,t2,h2), new Sensor(3,t3,h3) ]
         new Sample(parseInt(ts), sensors)
 
 generate_datasets = (samples) ->
-        ({key: SENSORS[i], values: generate_sensordata(samples,i)} for i in [0,1,2,3])
+        temp_data = (i) ->
+                data: generate_sensordata(samples,i,(i)->i.temp)
+                label: "Temp "+SENSORS[i]
+                color: TEMP_COLOURS[i]
+        humidity_data = (i) ->
+                data: generate_sensordata(samples,i,(i)->i.humidity)
+                label: "Humidity "+SENSORS[i]
+                color: HUMIDITY_COLOURS[i]
+                yaxis: 2
+        range = [0..SENSORS.length-1]
+        (temp_data(i) for i in range).concat(humidity_data(i) for i in range)
 
-generate_sensordata = (samples, sensor_index) ->
-        ({x:sample.timestamp, y:sample.sensors[sensor_index].temp} for sample in samples)
+generate_sensordata = (samples, sensor_index, field_fn) ->
+        ([sample.timestamp.getTime(), field_fn(sample.sensors[sensor_index])] for sample in samples)
 
-load_graph = (axes) ->
-        chart = nv.models.lineChart()
-        xFn = (d) -> d3.time.format('%I %M %p')(new Date(d))
-        chart.xAxis.tickFormat xFn
-        chart.yAxis.axisLabel('Temperature (T)')
-            .tickFormat(d3.format ',.1f')
-
-        d3.select('#chart1 svg')
-            .datum(axes)
-            .transition().duration(500)
-            .call(chart);
-
-        # TODO: Figure out a good way to do this automatically
-        nv.utils.windowResize chart.update
+load_graph = (data, from, to) ->
+           $.plot($("#graph"), data,  {
+                               xaxes: [ { mode: 'time', timezone: 'browser' } ],
+                               yaxes: [ { min: 0 },
+                                   {
+                                       alignTicksWithAxis: true,
+                                       position: "right",
+                                   } ],
+                               legend: { position: 'sw' }
+           })
 
 $(document).ready () ->
         ranges =
