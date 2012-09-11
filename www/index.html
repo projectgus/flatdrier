@@ -17,26 +17,35 @@ text {
 </style>
 <body>
 
-  <div class="container">
-    <div class="row">
-      <p><div class="form-horizontal">
-          <label class="control-label" for="reservation">Date Range:</label>
-          <div class="controls">
-            <div class="input-prepend">
-              <span class="add-on"><i class="icon-calendar"></i></span>
-              <input type="text" name="daterange" />
-            </div>
-          </div>
-        </div>
-      </p>
+  <div class="row">
+    <div class="span2">
+      <h3>Date Range</h3>
     </div>
-
-    <div id="graph" style="width:800px;height:500px;"></div>
-
-    <div class="row" id="chart1">
-      <p><svg style="height: 500px;"></svg></p>
+    <div class="span8">
+      <span class="add-on"><i class="icon-calendar"></i></span>
+      <input type="text" name="daterange" />
     </div>
   </div>
+
+  <div class="row">
+    <div class="span2">
+      <h3>Temperature</h3>
+      </div>
+    <div class="span8">
+      <div id="temperature" style="width:700px;height:300px;"></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="span2">
+      <h3>Humidity</h3>
+      </div>
+    <div class="span8">
+      <div id="humidity" style="width:700px;height:300px;"></div>
+    </div>
+  </div>
+
+
 
 <script src="lib/jquery-1.8.1.min.js"></script>
 <script src="lib/jquery.flot.js"></script>
@@ -98,32 +107,65 @@ build_sample = (ts,h0,t0,h1,t1,h2,t2,h3,t3,num_updates,out_status) ->
 generate_datasets = (samples) ->
         temp_data = (i) ->
                 data: generate_sensordata(samples,i,(i)->i.temp)
-                label: "Temp "+SENSORS[i]
-                color: TEMP_COLOURS[i]
+                label: SENSORS[i]
+                #color: TEMP_COLOURS[i]
+                hoverable: true
         humidity_data = (i) ->
                 data: generate_sensordata(samples,i,(i)->i.humidity)
-                label: "Humidity "+SENSORS[i]
-                color: HUMIDITY_COLOURS[i]
+                label: SENSORS[i]
+                #color: HUMIDITY_COLOURS[i]
                 yaxis: 2
+                hoverable: true
         range = [0..SENSORS.length-1]
-        (temp_data(i) for i in range).concat(humidity_data(i) for i in range)
+        dataset =
+            temperature: (temp_data(i) for i in range)
+            humidity: (humidity_data(i) for i in range)
 
 generate_sensordata = (samples, sensor_index, field_fn) ->
         ([sample.timestamp.getTime(), field_fn(sample.sensors[sensor_index])] for sample in samples)
 
-load_graph = (data, from, to) ->
-           $.plot($("#graph"), data,  {
-                               xaxes: [ min: from,
-                                        max: Math.min(to, new Date()),
-                                        mode: 'time',
-                                        timezone: 'browser' ],
-                               yaxes: [ { min: 0 },
-                                        {
-                                          alignTicksWithAxis: true,
-                                          position: "right",
-                                        } ],
-                               legend: { position: 'sw' }
-           })
+load_graph = (dataset, from, to) ->
+        xaxis =
+            min: from,
+            max: Math.min(to, new Date()),
+            mode: 'time',
+            timezone: 'browser'
+        yaxis =
+            min: 0
+        metadata =
+            xaxes: [ xaxis ]
+            yaxes: [ yaxis ]
+            hoverable: true
+            legend: { position: 'sw', backgroundOpacity: 0.3 }
+            grid: { hoverable: true }
+        $.plot($("#temperature"), dataset.temperature,  metadata)
+        $.plot($("#humidity"), dataset.humidity,  metadata)
+
+show_tooltip = (x, y, contents) ->
+        $('<div id="tooltip">' + contents + '</div>').css( {
+            position: 'absolute',
+            display: 'none',
+            top: y + 5,
+            left: x + 5,
+            border: '1px solid #fdd',
+            padding: '2px',
+            'background-color': '#fee',
+            opacity: 0.80
+        }).appendTo("body").fadeIn(200)
+
+previousPoint = null
+graph_plothover = (event, pos, item) ->
+        if item
+                if previousPoint != item.dataIndex
+                        previousPoint = item.dataIndex;
+                        $("#tooltip").remove()
+                        x = item.datapoint[0].toFixed(2)
+                        y = item.datapoint[1].toFixed(2)
+                        ts = new Date(parseInt(x)).toString("d-MMM hh:mm tt")
+                        show_tooltip item.pageX, item.pageY, item.series.label + " at " + ts + " = " + y
+                 else
+                        $("#tooltip").remove();
+                        previousPoint = null;
 
 $(document).ready () ->
         ranges =
@@ -139,6 +181,9 @@ $(document).ready () ->
             .daterangepicker(params, callback)
             .val(Date.today().toString("MM/dd/yyyy - MM/dd/yyyy"))
         fetch_chart_data new Date(), new Date()
+
+        $("#temperature").bind("plothover", graph_plothover)
+        $("#humidity").bind("plothover", graph_plothover)
 </script>
 </body>
 </html>
