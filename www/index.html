@@ -19,15 +19,15 @@ text {
 
   <div class="container">
     <div class="row">
-      <p><form class="form-horizontal">
+      <p><div class="form-horizontal">
           <label class="control-label" for="reservation">Date Range:</label>
           <div class="controls">
             <div class="input-prepend">
               <span class="add-on"><i class="icon-calendar"></i></span>
-              <input type="text" name="daterange" id="daterange" />
+              <input type="text" name="daterange" />
             </div>
           </div>
-        </form>
+        </div>
       </p>
     </div>
 
@@ -40,6 +40,7 @@ text {
 
 <script src="lib/jquery-1.8.1.min.js"></script>
 <script src="lib/jquery.flot.js"></script>
+<script src="lib/jquery.flot.time.js"></script>
 <script src="lib/coffee-script.js"></script>
 <script src="bootstrap/js/bootstrap.min.js"></script>
 <script type="text/javascript" src="lib/date.js"></script>
@@ -85,11 +86,10 @@ fetch_chart_data = (from,to) ->
                         samples = (build_sample line.split(",")... for line in lines)
                         samples = (s for s in samples when s.timestamp > from and s.timestamp < to)
                         load_graph generate_datasets((s for s in samples when s? and s.isvalid())), from, to
-        ($.get url, get_callback(index) for url,index in filenames)
+        error_callback = (day_index) -> () ->
+                        get_callback(day_index)("")
+        ($.get(url, get_callback(index)).error(error_callback index) for url,index in filenames)
 
-
-day = new Date(2012,8,4)
-fetch_chart_data day, day
 
 build_sample = (ts,h0,t0,h1,t1,h2,t2,h3,t3,num_updates,out_status) ->
         sensors = [ new Sensor(0,t0,h0), new Sensor(1,t1,h1), new Sensor(2,t2,h2), new Sensor(3,t3,h3) ]
@@ -113,12 +113,15 @@ generate_sensordata = (samples, sensor_index, field_fn) ->
 
 load_graph = (data, from, to) ->
            $.plot($("#graph"), data,  {
-                               xaxes: [ { mode: 'time', timezone: 'browser' } ],
+                               xaxes: [ min: from,
+                                        max: Math.min(to, new Date()),
+                                        mode: 'time',
+                                        timezone: 'browser' ],
                                yaxes: [ { min: 0 },
-                                   {
-                                       alignTicksWithAxis: true,
-                                       position: "right",
-                                   } ],
+                                        {
+                                          alignTicksWithAxis: true,
+                                          position: "right",
+                                        } ],
                                legend: { position: 'sw' }
            })
 
@@ -132,6 +135,11 @@ $(document).ready () ->
             ranges: ranges
         callback = (start,end) ->
             fetch_chart_data start, end
-        $('input[name="daterange"]').daterangepicker params, callback
-
+        $('input[name="daterange"]')
+            .daterangepicker(params, callback)
+            .val(Date.today().toString("MM/dd/yyyy - MM/dd/yyyy"))
+        fetch_chart_data new Date(), new Date()
 </script>
+</body>
+</html>
+
