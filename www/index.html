@@ -45,6 +45,14 @@ text {
     </div>
   </div>
 
+  <div class="row">
+    <div class="span2">
+      <h3>Dew Point</h3>
+      </div>
+    <div class="span8">
+      <div id="dew_point" style="width:700px;height:300px;"></div>
+    </div>
+  </div>
 
 
 <script src="lib/jquery-1.8.1.min.js"></script>
@@ -57,14 +65,13 @@ text {
 <script type="text/coffeescript">
 # some "constants"
 SENSORS = [ "Lounge Room", "Kitchen", "Outside", "Study Sill" ] # sensor locations
-TEMP_COLOURS =     [ "#A2285E", "#8C003D", "#D8005F", "#EB3B88" ]
-HUMIDITY_COLOURS = [ "#472B83", "#290671", "#7546D7", "#4512AE" ]
 DAY=60*60*24*1000 # one day in ms
 
 class Sensor
         constructor: (@index, temp, humidity) ->
                 @temp = parseFloat temp
                 @humidity = parseFloat humidity
+                @dew_point = @temp - (100-@humidity)/5
 
         isvalid: ->
                 not (isNaN(@temp) or isNaN(@humidity))
@@ -72,6 +79,8 @@ class Sensor
 class Sample
         constructor: (timestamp, @sensors) ->
                 @timestamp = new Date(timestamp*1000)
+                # across all the sensor dew points, choose the maximum
+                @max_dew_point = (s.dew_point for s in @sensors).reduce ((x,y) -> Math.max(x,y)), 0
 
         isvalid: ->
                 invalids = (s for s in @sensors when not (s? and s.isvalid()))
@@ -108,18 +117,26 @@ generate_datasets = (samples) ->
         temp_data = (i) ->
                 data: generate_sensordata(samples,i,(i)->i.temp)
                 label: SENSORS[i]
-                #color: TEMP_COLOURS[i]
+                hoverable: true
+        max_dew_point_data =
+                data: ([d.timestamp.getTime(), d.max_dew_point] for d in samples)
+                label: "Max Dewpoint"
                 hoverable: true
         humidity_data = (i) ->
                 data: generate_sensordata(samples,i,(i)->i.humidity)
                 label: SENSORS[i]
-                #color: HUMIDITY_COLOURS[i]
-                yaxis: 2
+                hoverable: true
+        dew_point_data = (i) ->
+                data: generate_sensordata(samples,i,(i)->i.dew_point)
+                label: SENSORS[i]
                 hoverable: true
         range = [0..SENSORS.length-1]
         dataset =
-            temperature: (temp_data(i) for i in range)
+            temp: (temp_data(i) for i in range).concat(max_dew_point_data)
             humidity: (humidity_data(i) for i in range)
+            dew_point: (dew_point_data(i) for i in range)
+        console.log dataset.temp
+        dataset
 
 generate_sensordata = (samples, sensor_index, field_fn) ->
         ([sample.timestamp.getTime(), field_fn(sample.sensors[sensor_index])] for sample in samples)
@@ -138,8 +155,9 @@ load_graph = (dataset, from, to) ->
             hoverable: true
             legend: { position: 'sw', backgroundOpacity: 0.3 }
             grid: { hoverable: true }
-        $.plot($("#temperature"), dataset.temperature,  metadata)
+        $.plot($("#temperature"), dataset.temp,  metadata)
         $.plot($("#humidity"), dataset.humidity,  metadata)
+        $.plot($("#dew_point"), dataset.dew_point,  metadata)
 
 show_tooltip = (x, y, contents) ->
         $('<div id="tooltip">' + contents + '</div>').css( {
@@ -184,6 +202,7 @@ $(document).ready () ->
 
         $("#temperature").bind("plothover", graph_plothover)
         $("#humidity").bind("plothover", graph_plothover)
+        $("#dew_point").bind("plothover", graph_plothover)
 </script>
 </body>
 </html>
