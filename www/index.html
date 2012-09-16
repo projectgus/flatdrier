@@ -38,6 +38,15 @@ text {
 
   <div class="row">
     <div class="span2">
+      <h3>Dehumidifier</h3>
+      </div>
+    <div class="span8">
+      <div id="dehumidifier" style="width:700px;height:50px;"></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="span2">
       <h3>Humidity</h3>
       </div>
     <div class="span8">
@@ -77,7 +86,7 @@ class Sensor
                 not (isNaN(@temp) or isNaN(@humidity))
 
 class Sample
-        constructor: (timestamp, @sensors) ->
+        constructor: (timestamp, @sensors, @dehumidifier) ->
                 @timestamp = new Date(timestamp*1000)
                 # across all the sensor dew points, choose the maximum
                 @max_dew_point = (s.dew_point for s in @sensors).reduce ((x,y) -> Math.max(x,y)), 0
@@ -85,6 +94,9 @@ class Sample
         isvalid: ->
                 invalids = (s for s in @sensors when not (s? and s.isvalid()))
                 invalids.length == 0
+
+        js_timestamp: ->
+                return @timestamp.getTime()
 
 fetch_chart_data = (from,to) ->
         from = new Date(from.getFullYear(), from.getMonth(), from.getDate()) # normalise from 00:00:00
@@ -109,9 +121,9 @@ fetch_chart_data = (from,to) ->
         ($.get(url, get_callback(index)).error(error_callback index) for url,index in filenames)
 
 
-build_sample = (ts,h0,t0,h1,t1,h2,t2,h3,t3,num_updates,out_status) ->
+build_sample = (ts,h0,t0,h1,t1,h2,t2,h3,t3,num_updates,dehumidifier) ->
         sensors = [ new Sensor(0,t0,h0), new Sensor(1,t1,h1), new Sensor(2,t2,h2), new Sensor(3,t3,h3) ]
-        new Sample(parseInt(ts), sensors)
+        new Sample(parseInt(ts), sensors, dehumidifier == "1")
 
 generate_datasets = (samples) ->
         temp_data = (i) ->
@@ -119,9 +131,14 @@ generate_datasets = (samples) ->
                 label: SENSORS[i]
                 hoverable: true
         max_dew_point_data =
-                data: ([d.timestamp.getTime(), d.max_dew_point] for d in samples)
+                data: ([d.js_timestamp(), d.max_dew_point] for d in samples)
                 label: "Max Dewpoint"
                 hoverable: true
+        dehumidifier_data =
+                data: ([d.js_timestamp(), 0+d.dehumidifier] for d in samples)
+                label: "Dehumidifier Setting"
+                hoverable: true
+                color: "6EF0FF"
         humidity_data = (i) ->
                 data: generate_sensordata(samples,i,(i)->i.humidity)
                 label: SENSORS[i]
@@ -135,11 +152,10 @@ generate_datasets = (samples) ->
             temp: (temp_data(i) for i in range).concat(max_dew_point_data)
             humidity: (humidity_data(i) for i in range)
             dew_point: (dew_point_data(i) for i in range)
-        console.log dataset.temp
-        dataset
+            dehumidifier: [dehumidifier_data]
 
 generate_sensordata = (samples, sensor_index, field_fn) ->
-        ([sample.timestamp.getTime(), field_fn(sample.sensors[sensor_index])] for sample in samples)
+        ([sample.js_timestamp(), field_fn(sample.sensors[sensor_index])] for sample in samples)
 
 load_graph = (dataset, from, to) ->
         xaxis =
@@ -155,9 +171,18 @@ load_graph = (dataset, from, to) ->
             hoverable: true
             legend: { position: 'sw', backgroundOpacity: 0.3 }
             grid: { hoverable: true }
-        $.plot($("#temperature"), dataset.temp,  metadata)
-        $.plot($("#humidity"), dataset.humidity,  metadata)
-        $.plot($("#dew_point"), dataset.dew_point,  metadata)
+        $.plot $("#temperature"), dataset.temp,  metadata
+        $.plot $("#humidity"), dataset.humidity,  metadata
+        $.plot $("#dew_point"), dataset.dew_point,  metadata
+
+        # dehumidifier has special axes
+        dehumidifier_metadata = $.extend {}, metadata
+        dehumidifier_metadata.yaxes[0].max = 1
+        dehumidifier_metadata.legend.show = false
+        dehumidifier_metadata.yaxes[0].ticks = [[0,"Off"],[1,"On"]]
+        console.log dataset.dehumidifier
+        $.plot $("#dehumidifier"), dataset.dehumidifier, dehumidifier_metadata
+
 
 show_tooltip = (x, y, contents) ->
         $('<div id="tooltip">' + contents + '</div>').css( {
@@ -172,18 +197,21 @@ show_tooltip = (x, y, contents) ->
         }).appendTo("body").fadeIn(200)
 
 previousPoint = null
+graph_hide = () ->
+        $("#tooltip").remove();
+        previousPoint = null;
+
 graph_plothover = (event, pos, item) ->
-        if item
-                if previousPoint != item.dataIndex
-                        previousPoint = item.dataIndex;
-                        $("#tooltip").remove()
-                        x = item.datapoint[0].toFixed(2)
-                        y = item.datapoint[1].toFixed(2)
-                        ts = new Date(parseInt(x)).toString("d-MMM hh:mm tt")
-                        show_tooltip item.pageX, item.pageY, item.series.label + " at " + ts + " = " + y
-                 else
-                        $("#tooltip").remove();
-                        previousPoint = null;
+        window.clearTimeout $("#tooltip").data("timeout")
+        if (not item) or previousPoint == item.dataIndex
+                graph_hide()
+        else
+                previousPoint = item.dataIndex;
+                $("#tooltip").remove()
+                x = item.datapoint[0].toFixed(2)
+                y = item.datapoint[1].toFixed(2)
+                ts = new Date(parseInt(x)).toString("d-MMM hh:mm tt")
+                show_tooltip item.pageX, item.pageY, item.series.label + " at " + ts + " = " + y
 
 $(document).ready () ->
         ranges =
@@ -200,9 +228,7 @@ $(document).ready () ->
             .val(Date.today().toString("MM/dd/yyyy - MM/dd/yyyy"))
         fetch_chart_data new Date(), new Date()
 
-        $("#temperature").bind("plothover", graph_plothover)
-        $("#humidity").bind("plothover", graph_plothover)
-        $("#dew_point").bind("plothover", graph_plothover)
+        $(id).bind "plothover", graph_plothover for id in [ "#temperature", "#humidity", "#dew_point", "#dehumidifier" ]
 </script>
 </body>
 </html>
