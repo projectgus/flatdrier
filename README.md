@@ -9,11 +9,8 @@ github in the hope some pieces of the code may be of use elsewhere.
 # Components
 
 * *mcu/* directory contains a C program that runs on the Arduino board:
-
     + It monitors the onboard DHT-11 sensor, and up to 3 remote "noname brand" weather station senders (433Mhz band.)
-
     + It controls the remote power point (Powertran A0342 brand) to turn the dehumidifer on and off.
-
     + It is deliberately dumb, controlled via one-character serial commands ('r' to read all data, 'o'/'f' to turn power on/off.)
 
 * *flatshield/* is a quick & simple "Arduino shield" breakout board design (made in Kicad) for the 433Mhz sender & receiver modules, and a DHT-11 temp & humidity sensor.
@@ -48,14 +45,14 @@ is Copyright (c) 2012, Angus Gratton.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * Neither the name of the flatdrier nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+* Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+* Neither the name of the flatdrier nor the
+    names of its contributors may be used to endorse or promote products
+    derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
