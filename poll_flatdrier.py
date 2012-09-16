@@ -15,13 +15,27 @@ just setting a switch on clones like Seeeduino.) If not, the data
 output will always be empty!
 """
 
+############################
 # Script config parameters
+############################
+
+# Directory to store the CSV files with sensor data
 OUTPUT_DIR="/www/flatdrier/data/"
+
+# Serial port to connect to the Arduino
 SERIAL="/dev/ttyUSB0"
-ON_HOURS=(9,21) # allowable hours to have dehmudifier on
-LOOKBACK_HOURS=4 # how many hours to look back for dew (dehumidifier stays on for this long at minimum)
-ANTI_HYSTERISIS_MINUTES=30 # don't switch back on within this long
+
+# Allowable hours to have dehumudifier on. Will always be switched off outside these hours.
+ON_HOURS=(9,21)
+
+# A "dew trigger" is one where 'minimum temperature - DEW_THRESHOLD < maximum dewpoint'
 DEW_THRESHOLD=2.5
+
+# How many hours to look back for a "dew trigger" (consequently, dehumidifier will stay on for this long at minimum)
+LOOKBACK_HOURS=4
+
+# Never switch between on/off within this many minutes (avoid wear on the dehumidifier)
+ANTI_HYSTERISIS_MINUTES=30
 
 import datetime,time,os,serial,csv,itertools
 from datetime import datetime,timedelta
@@ -35,6 +49,7 @@ def main():
     set_dehumidifier(s)
 
 def write_latest(s):
+    """ Fetch the latest sample from the Arduino and write it to a CSV file"""
     now = time.time()
     with open(get_path(datetime.utcnow()), "a") as f:
         while s.inWaiting(): # flush anything in the read buffer
@@ -48,9 +63,10 @@ def write_latest(s):
 
 
 def set_dehumidifier(s):
+    """ Load recent samples and determine if the dehumidifier should be switched on or off """
     now = time.time()
     samples = []
-    # read all the samples for the past 2 days
+    # read all the samples for the past 2 days (LOOKBACK_HOURS may span two days' worth of files)
     for path in [ get_path(datetime.utcnow()-timedelta(days=days)) for days in [1,0] ]:
         with open(path, "r") as f:
             samples += [parse_sample(line) for line in csv.reader(f, delimiter=',')]
@@ -73,9 +89,11 @@ def dewpoint(temp,humidity):
     return temp - (100-humidity)/5
 
 def dehumidifier_should_be_on(sample):
+    """ Does this sample trigger the dehumidifier to be on? """
     return sample["min_temp"] <= sample["max_dewpoint"]+DEW_THRESHOLD
 
 def parse_sample(resp):
+    """ Parse a sample from the relevant fields in the CSV data """
     ts,h0,t0,h1,t1,h2,t2,h3,t3,_,status = resp
     status = { "?" : None, "0": False, "1" : True }[status]
     temps = [ float(t) for t in [t0,t1,t2,t3] ]
