@@ -90,7 +90,7 @@ class Sample
         constructor: (csv_line) ->
                 [ts,h0,t0,h1,t1,h2,t2,h3,t3,num_updates,dehumidifier] = csv_line.split(",")
                 @sensors = [ new Sensor(0,t0,h0), new Sensor(1,t1,h1), new Sensor(2,t2,h2), new Sensor(3,t3,h3) ]
-                @dehumidifier = dehumidifier == 1
+                @dehumidifier = dehumidifier == "1"
                 @raw_timestamp = ts*1000 # ms since epoch
                 @timestamp = new Date(@raw_timestamp)
                 # across all the sensor dew points, choose the maximum dew point value
