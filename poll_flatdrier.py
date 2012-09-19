@@ -90,7 +90,7 @@ def dewpoint(temp,humidity):
 
 def dehumidifier_should_be_on(sample):
     """ Does this sample trigger the dehumidifier to be on? """
-    return sample["min_temp"] <= sample["max_dewpoint"]+DEW_THRESHOLD
+    return sample["min_temp"] <= sample["max_dewpoint"]+DEW_THRESHOLD and sample["min_humidity"] > 0
 
 def parse_sample(resp):
     """ Parse a sample from the relevant fields in the CSV data """
@@ -103,6 +103,7 @@ def parse_sample(resp):
         "ts" : int(ts),
         "status"  : status,
         "min_temp" : min(temps),
+        "min_humidity" : min(humidity),
         "max_dewpoint" : max((dewpoint(t,h) for t,h in zip(temps, humidity))),
         }
 

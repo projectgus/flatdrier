@@ -84,7 +84,7 @@ class Sensor
                 @dew_point = @temp - (100-@humidity)/5
 
         isvalid: ->
-                not (isNaN(@temp) or isNaN(@humidity))
+                (not isNaN(@temp)) and @humidity > 1
 
 class Sample
         constructor: (csv_line) ->
