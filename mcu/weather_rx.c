@@ -31,7 +31,7 @@
 
 // constants
 #define MSG_LEN 36 // 36 bit raw messages, but first 4 bytes are always 5 (1010) so we discard
-#define MSG_REPEAT 3
+#define MSG_REPEAT 5
 #define MINIMUM_PULSE 1
 #define ZERO_THRES 2
 #define MSG_GAP 6
