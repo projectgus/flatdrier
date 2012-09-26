@@ -29,10 +29,11 @@ SERIAL="/dev/ttyUSB0"
 ON_HOURS=(9,21)
 
 # A "dew trigger" is one where 'minimum temperature - DEW_THRESHOLD < maximum dewpoint'
-DEW_THRESHOLD=2.5
+DEW_THRESHOLD=1.5
 
-# How many hours to look back for a "dew trigger" (consequently, dehumidifier will stay on for this long at minimum)
-LOOKBACK_HOURS=4
+# Every "dew" minute within the last 24 hours has to matched by DEHUMIDIFIER_FACTOR * "dew"
+# minutes with the dehumidifier on
+DEHUMIDIFIER_FACTOR=2
 
 # Never switch between on/off within this many minutes (avoid wear on the dehumidifier)
 ANTI_HYSTERISIS_MINUTES=30
@@ -64,32 +65,44 @@ def write_latest(s):
 
 def set_dehumidifier(s):
     """ Load recent samples and determine if the dehumidifier should be switched on or off """
+    # read all the samples for the past 2 days (LOOKBACK_HOURS may span two days' worth of files)
     now = time.time()
     samples = []
-    # read all the samples for the past 2 days (LOOKBACK_HOURS may span two days' worth of files)
     for path in [ get_path(datetime.utcnow()-timedelta(days=days)) for days in [1,0] ]:
         with open(path, "r") as f:
-            samples += [parse_sample(line) for line in csv.reader(f, delimiter=',')]
+            for line in csv.reader(f, delimiter=','):
+                sample = parse_sample(line)
+                if sample["ts"] > now - 24*60*60:
+                    samples.append(sample)
+
+    # count number of samples w/ dew or w/ dehumidifier on
+    dew_samples = 0
+    on_samples = 0
+    for sample in samples:
+        dew_samples += below_dewpoint(sample)
+        on_samples += bool(sample["status"])
+
     # work out if the dehumidifier should be on
     now = datetime.now()
     in_hours = now.hour >= ON_HOURS[0] and now.hour < ON_HOURS[1]
-    should_be_on = in_hours and any(dehumidifier_should_be_on(r) for r in samples
-                                             if r["ts"] > time.time() - LOOKBACK_HOURS*60*60 ) # last X hours of samples
+    should_be_on = in_hours and dew_samples * DEHUMIDIFIER_FACTOR > on_samples
+
     try:
         latest = samples[-1]
     except IndexError:
         latest = { "status" : None }
-    if latest["status"] != should_be_on:
-        # anti-hysterisis check if it's changed lately before switching
-        if not any(r["status"]==should_be_on for r in samples if r["ts"] > time.time() - ANTI_HYSTERISIS_MINUTES*60):
-            s.write("o" if should_be_on else "f")
+    # anti-hysterisis check if it's changed lately, before switching
+    if latest["status"] != should_be_on and any(r["status"]==should_be_on for r in samples if r["ts"] > time.time() - ANTI_HYSTERISIS_MINUTES*60):
+        should_be_on = not should_be_on
+
+    s.write("o" if should_be_on else "f")
 
 
 def dewpoint(temp,humidity):
     return temp - (100-humidity)/5
 
-def dehumidifier_should_be_on(sample):
-    """ Does this sample trigger the dehumidifier to be on? """
+def below_dewpoint(sample):
+    """ Is any temperature in this sample below the dewpoint?  """
     return sample["min_temp"] <= sample["max_dewpoint"]+DEW_THRESHOLD and sample["min_humidity"] > 0
 
 def parse_sample(resp):

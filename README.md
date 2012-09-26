@@ -8,23 +8,37 @@ github in the hope some pieces of the code may be of use elsewhere.
 
 # Components
 
-* *mcu/* directory contains a C program that runs on the Arduino board:
-    + It monitors the onboard DHT-11 sensor, and up to 3 remote "noname brand" weather station senders (433Mhz band.)
-    + It controls the remote power point (Powertran A0342 brand) to turn the dehumidifer on and off.
-    + It is deliberately dumb, controlled via one-character serial commands ('r' to read all data, 'o'/'f' to turn power on/off.)
+* *mcu/* directory contains a C program that runs on the Arduino
+    board: + It monitors the onboard DHT-11 sensor, and up to 3 remote
+    "noname brand" weather station senders (433Mhz band.)  + It
+    controls the remote power point (Powertran A0342 brand) to turn
+    the dehumidifer on and off.  + It is deliberately dumb, controlled
+    via one-character serial commands ('r' to read all data, 'o'/'f'
+    to turn power on/off.)
 
-* *flatshield/* is a quick & simple "Arduino shield" breakout board design (made in Kicad) for the 433Mhz sender & receiver modules, and a DHT-11 temp & humidity sensor.
+* *flatshield/* is a quick & simple "Arduino shield" breakout board
+   design (made in Kicad) for the 433Mhz sender & receiver modules,
+   and a DHT-11 temp & humidity sensor.
 
-* *poll_flatdrier.py* is a Python script that talks to the Arduino and logs the temperature data to CSV text files. It also makes the decision about when to turn the dehumidifer on or off at a given time, based on the current temperatures & dew points.
+* *poll_flatdrier.py* is a Python script that talks to the Arduino and
+   logs the temperature data to CSV text files. It also makes the
+   decision about when to turn the dehumidifer on or off at a given
+   time, based on the current temperatures, dew points & how much the
+   dehumidifier has been on in the previous 24 hours.
 
-* *www/* contains a Web interface that allows browsing of temperature & humidity data. The web interface runs client-only so I can host it on my OpenWRT router without needing to set up any server-side stuff.
+* *www/* contains a Web interface that allows browsing of temperature
+   & humidity data. The web interface runs client-only so I can host
+   it on my OpenWRT router without needing to set up any server-side
+   stuff.
 
 # Dependencies
 
 The Kicad .brd files use nicholasclewis' very handy Arduino Shield Modules for Kicad
 http://www.thingiverse.com/thing:9630
 
-The web interface uses a number of very useful third party free software libraries, all included in the source tree under www/lib/:
+The web interface uses a number of very useful third party free
+software libraries, all included in the source tree under www/lib/:
+
 * [Bootstrap](http://twitter.github.com/bootstrap/) by Twitter
 * [Twitter Bootstrap Date Range Picker](http://www.dangrossman.info/2012/08/20/a-date-range-picker-for-twitter-bootstrap/) by Dan Grossman
 * [Flot](http://www.flotcharts.org/) by IOLA and Ole Laursen
@@ -37,6 +51,12 @@ The web interface uses a number of very useful third party free software librari
   pin of the DHT-11 requiring a fix wire. It's only attached here so
   I don't lose track of it.
 
+* poll_flatdrier.py is pretty inefficient in that it slowly
+  recalculates the number of "dew samples" and "dehumidifier on"
+  samples in the past day, each time it is run (ie every minute.) This
+  takes about 8 seconds on my little router with its 200Mhz MIPS
+  processor. The router's load average is otherwise 0.01 though, so
+  it's an inefficiency I can live with.
 
 # License
 
