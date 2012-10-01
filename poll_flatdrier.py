@@ -29,11 +29,11 @@ SERIAL="/dev/ttyUSB0"
 ON_HOURS=(9,21)
 
 # A "dew trigger" is one where 'minimum temperature - DEW_THRESHOLD < maximum dewpoint'
-DEW_THRESHOLD=1.5
+DEW_THRESHOLD=1.0
 
 # Every "dew" minute within the last 24 hours has to matched by DEHUMIDIFIER_FACTOR * "dew"
 # minutes with the dehumidifier on
-DEHUMIDIFIER_FACTOR=2
+DEHUMIDIFIER_FACTOR=1.5
 
 # Never switch between on/off within this many minutes (avoid wear on the dehumidifier)
 ANTI_HYSTERISIS_MINUTES=30
